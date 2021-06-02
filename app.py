@@ -29,12 +29,12 @@ def home():
     return ( 
         f"Welcome to my 'Home' page!<br/>"
         f"Available Routes:<br/>"
-        f"/api/v1.0/precipitation<br/>"
-        f"/api/v1.0/stations<br/>"
-        f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/start<br/>"
-        f"/api/v1.0/start/end<br/>"
-        f"/jsonified<br/>"
+        f"<a href='/api/v1.0/precipitation'>Precipitation</a><br/>"
+        f"<a href='/api/v1.0/stations'>Stations</a><br/>"
+        f"<a href='/api/v1.0/tobs'>TOBS - Temperature Observations</a><br/>"
+        f"<a href='/api/v1.0/start'>Start</a><br/>"
+        f"<a href='/api/v1.0/start/end'>Start - End</a><br/>"
+        f"<a href='/jsonified'>JSON</a><br/>"
 
     )
 
