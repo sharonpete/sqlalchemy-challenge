@@ -1,4 +1,5 @@
 import numpy as np
+import datetime as dt
 
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
@@ -16,8 +17,8 @@ Base = automap_base()
 Base.prepare(engine, reflect=True)
 
 # Save the reference to the tables
-Station = Base.classes.station
-Measurement = Base.classes.measurement
+station = Base.classes.station
+measurement = Base.classes.measurement
 
 
 # Flask Setup
@@ -42,16 +43,25 @@ def home():
 def precipitation():
     # Create our session link from Python to the DB
     session = Session(engine)
+
+    # Find the most recent date in the data set, convert string format to date.
+    most_recent_date = session.query(measurement.date).order_by(measurement.date.desc()).first()[0]
+    most_recent_date = (dt.datetime.strptime(most_recent_date, '%Y-%m-%d')).date()
+
+    # Calculate the date one year prior to the most recent date in dataset
+    analysis_start_date = most_recent_date - dt.timedelta(days=365)
+
     # query for prcp
-    results = session.query(Measurement.station, Measurement.date, Measurement.prcp)\
-        .filter(Measurement.date > '2016-08-23').order_by(Measurement.date.desc()).all()
+    # results = session.query(Measurement.station, Measurement.date, Measurement.prcp)\
+    #     .filter(Measurement.date > '2016-08-23').order_by(Measurement.date.desc()).all()
+    prcp_data = session.query(measurement.date, measurement.prcp).\
+    filter((measurement.date <= most_recent_date) & (measurement.date >= analysis_start_date)).all()
     session.close()
 
     # create a list of dictionaries, including the station just because
     prcp_values = []
-    for row in results:
+    for row in prcp_data:
         dict = {}
-        dict['station'] = row.station
         dict['date'] = row.date
         dict['prcp'] = row.prcp
         prcp_values.append(dict)
@@ -64,18 +74,16 @@ def stations():
      # Create our session link from Python to the DB
     session = Session(engine)
     # query for stations
-    results = session.query(Station.station, Station.name).all()
+    results = session.query(station.station, station.name).all()
     session.close()
 
-    # convert list of tuples into normal list
-    #all_stations = list(np.ravel(results))
     # create a list of dictionaries
     stations = []
     for row in results:
-        dict = {}
-        dict['station'] = row.station
-        dict['name'] = row.name
-        stations.append(dict)
+        # dict = {}
+        # dict['name'] = row.name
+        # dict['station'] = row.station
+        stations.append(row.station)
 
     print("Server received request for /api/v1.0/stations")
     return jsonify(stations)
