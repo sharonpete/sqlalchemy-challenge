@@ -52,8 +52,6 @@ def precipitation():
     analysis_start_date = most_recent_date - dt.timedelta(days=365)
 
     # query for prcp
-    # results = session.query(Measurement.station, Measurement.date, Measurement.prcp)\
-    #     .filter(Measurement.date > '2016-08-23').order_by(Measurement.date.desc()).all()
     prcp_data = session.query(measurement.date, measurement.prcp).\
     filter((measurement.date <= most_recent_date) & (measurement.date >= analysis_start_date)).all()
     session.close()
@@ -92,20 +90,30 @@ def stations():
 def tobs():
      # Create our session link from Python to the DB
     session = Session(engine)
-    # query for stations
-    results = session.query(Measurement.date, Measurement.tobs).filter(Measurement.station == 'USC00516128').\
-            filter(Measurement.date > '2016-08-23').order_by(Measurement.date.desc()).\
-            filter(Measurement.tobs != 'None').all()
-    session.close()
-
     
+    # Design a query to find the most active station (i.e. what station has the most rows?)
+    results = session.query(measurement.station, func.count(measurement.station), station.name, station.id).\
+        order_by(func.count(measurement.station).desc()).\
+        group_by(measurement.station).all()
+    most_active = results[0][0]
+
+    # Return a JSON list of temperature observations (TOBS) for the previous year
+    # Find the most recent date in the data set, convert string format to date.
+    most_recent_date = session.query(measurement.date).order_by(measurement.date.desc()).first()[0]
+    most_recent_date = (dt.datetime.strptime(most_recent_date, '%Y-%m-%d')).date()
+
+    # Calculate the date one year prior to the most recent date in dataset
+    analysis_start_date = most_recent_date - dt.timedelta(days=365)
+    
+    results = session.query(measurement.tobs).\
+        filter((measurement.station == most_active) \
+        & (measurement.date <= most_recent_date) \
+        & (measurement.date >= analysis_start_date)).all()
+
     # create a list of dictionaries
     tobs = []
     for row in results:
-        dict = {}
-        dict['date'] = row.date
-        dict['tobs'] = row.tobs
-        tobs.append(dict)
+        tobs.append(row.tobs)
 
     print("Server received request for /api/v1.0/tobs")
     return jsonify(tobs)
