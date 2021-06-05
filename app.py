@@ -78,9 +78,6 @@ def stations():
     # create a list of dictionaries
     stations = []
     for row in results:
-        # dict = {}
-        # dict['name'] = row.name
-        # dict['station'] = row.station
         stations.append(row.station)
 
     print("Server received request for /api/v1.0/stations")
@@ -110,6 +107,8 @@ def tobs():
         & (measurement.date <= most_recent_date) \
         & (measurement.date >= analysis_start_date)).all()
 
+    session.close()
+
     # create a list of dictionaries
     tobs = []
     for row in results:
@@ -120,24 +119,36 @@ def tobs():
 
 
 @app.route("/api/v1.0/<start>")
-def tobs_summary(start):
-
+@app.route("/api/v1.0/<start>/<end>")
+def tobs_summary(start=None, end=None):
     # Create our session link from Python to the DB
     session = Session(engine)
+    
+    print("Start date:"+start)
+    if end:
+        print("End date: "+end)
+    
     # query for stations
-    results = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),\
-        func.avg(Measurement.tobs)).filter(Measurement.date >= start)\
-            .filter(Measurement.tobs != 'None').all()
+    if not end:
+        results = session.query(func.min(measurement.tobs),func.max(measurement.tobs),\
+            func.avg(measurement.tobs)).filter(measurement.date >= start)\
+            .filter(measurement.tobs != 'None').all()
+    else:
+        results = session.query(func.min(measurement.tobs),func.max(measurement.tobs),\
+            func.avg(measurement.tobs))\
+            .filter((measurement.date >= start) & (measurement.date <= end))\
+            .filter(measurement.tobs != 'None').all()
    
 
     session.close()
 
-    # convert list of tuples into normal list
-    #summary = list(np.ravel(results))
     summary = []
     for row in results:
         dict = {}
         dict['start date'] = start
+        if end:
+            dict['end date'] = end
+
         dict['tobs min'] = row[0]
         dict['tobs max'] = row[1]
         dict['tobs avg'] = row[2]
@@ -148,34 +159,6 @@ def tobs_summary(start):
     return jsonify(summary)
 
 
-@app.route("/api/v1.0/<start>/<end>")
-def other_tobs_summary(start,end):
-
-    # Create our session link from Python to the DB
-    session = Session(engine)
-    # query for stations
-    results = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),\
-        func.avg(Measurement.tobs)).filter(Measurement.date >= start)\
-        .filter(Measurement.date <= end).filter(Measurement.tobs != 'None').all()
-   
-
-    session.close()
-
-    # convert list of tuples into normal list
-    #summary = list(np.ravel(results))
-    summary = []
-    for row in results:
-        dict = {}
-        dict['start date'] = start
-        dict['end date'] = end
-        dict['tobs min'] = row[0]
-        dict['tobs max'] = row[1]
-        dict['tobs avg'] = row[2]
-        summary.append(dict)
-
-
-    print("Server received request for /api/v1.0/<start>/<end>")
-    return jsonify(summary)
 
 
 if __name__ == "__main__":
