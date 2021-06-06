@@ -35,8 +35,7 @@ def home():
         f"<a href='/api/v1.0/tobs'>TOBS - Temperature Observations</a><br/>"
         f"<a href='/api/v1.0/start'>Start</a><br/>"
         f"<a href='/api/v1.0/start/end'>Start - End</a><br/>"
-        f"<a href='/jsonified'>JSON</a><br/>"
-
+       
     )
 
 @app.route("/api/v1.0/precipitation")
